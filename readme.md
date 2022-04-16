@@ -224,18 +224,6 @@ If you'd like to setup a model's type mapping based on your mapping properties, 
     Book::putMapping($ignoreConflicts = true);
 ```
 
-To delete a mapping:
-
-```php
-    Book::deleteMapping();
-```
-
-To rebuild (delete and re-add, useful when you make important changes to your mapping) a mapping:
-
-```php
-    Book::rebuildMapping();
-```
-
 You can also get the type mapping and check if it exists.
 
 ```php
@@ -275,19 +263,6 @@ function getIndexName()
 ```
 
 Note: If no index was specified, Elasticquent will use a hardcoded string with the value of `default`.
-
-### Setting a Custom Type Name
-
-By default, Elasticquent will use the table name of your models as the type name for indexing. If you'd like to override it, you can with the `getTypeName` function.
-
-```php
-function getTypeName()
-{
-    return 'custom_type_name';
-}
-```
-
-To check if the type for the Elasticquent model exists yet, use `typeExists`:
 
 ```php
     $typeExists = Book::typeExists();
