@@ -511,6 +511,24 @@ trait ElasticquentTrait
     }
 
     /**
+     * Index exist
+     *
+     * @return bool
+     */
+    public static function indexExist()
+    {
+        $instance = new static;
+
+        $client = $instance->getElasticSearchClient();
+
+        $index = array(
+            'index' => $instance->getIndexName(),
+        );
+
+        return $client->indices()->exists($index);
+    }
+
+    /**
      * Type Exists.
      *
      * Does this type exist?
