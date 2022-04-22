@@ -458,7 +458,7 @@ trait ElasticquentTrait
      *
      * @return array
      */
-    public static function createIndex($shards = null, $replicas = null)
+    public static function createIndex($addMapping = true, $shards = null, $replicas = null)
     {
         $instance = new static;
 
@@ -481,13 +481,16 @@ trait ElasticquentTrait
             $index['body']['settings']['number_of_replicas'] = $replicas;
         }
 
-        $mappingProperties = $instance->getMappingProperties();
-        if (!is_null($mappingProperties)) {
-            $index['body']['mappings'] = [
-                '_source' => array('enabled' => true),
-                'properties' => $mappingProperties,
-            ];
+        if($addMapping){
+            $mappingProperties = $instance->getMappingProperties();
+            if (!is_null($mappingProperties)) {
+                $index['body']['mappings'] = [
+                    '_source' => array('enabled' => true),
+                    'properties' => $mappingProperties,
+                ];
+            }
         }
+
 
         return $client->indices()->create($index);
     }
