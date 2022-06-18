@@ -3,9 +3,11 @@
 namespace Elasticquent;
 
 use Exception;
+use Illuminate\Support\Arr;
 use ReflectionMethod;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Collection;
 
 /**
  * Elasticquent Trait
@@ -208,14 +210,16 @@ trait ElasticquentTrait
      * @param int   $limit
      * @param int   $offset
      * @param array $sort
+     * @param string   $paginationType
      *
      * @return ElasticquentResultCollection
      */
-    public static function searchByQuery($query = null, $aggregations = null, $sourceFields = null, $limit = null, $offset = null, $sort = null)
+    public static function searchByQuery($query = null, $aggregations = null, $sourceFields = null, $limit = null, $offset = null, $searchAfter = null, $sort = null, $paginationType = 'base', $cursorName = 'cursor' )
     {
         $instance = new static;
 
-        $params = $instance->getBasicEsParams(true, $limit, $offset);
+        $params = $instance->getBasicEsParams(true, $limit, $offset, true);
+        $perPage = $params['size'];
 
         if (!empty($sourceFields)) {
             $params['body']['_source']['include'] = $sourceFields;
@@ -225,17 +229,31 @@ trait ElasticquentTrait
             $params['body']['query'] = $query;
         }
 
+        if (!empty($searchAfter)) {
+            $params['body']['search_after'] = $searchAfter;
+        }
+
         if (!empty($aggregations)) {
             $params['body']['aggs'] = $aggregations;
         }
 
         if (!empty($sort)) {
             $params['body']['sort'] = $sort;
+        }else{
+            $params['body']['sort'] = $instance->getDefaultSort();
         }
 
-        $result = $instance->getElasticSearchClient()->search($params);
+        if(empty($params['body']['sort']) && $paginationType !== 'cursor'){
+            throw new Exception('If use cursort pagination you must add sort direction');
+        }
 
-        return static::hydrateElasticsearchResult($result);
+        if($paginationType === 'cursor'){
+            list($cursor, $cursorOrders) = self::paginateUsingCursor($params, $cursorName);
+        }
+
+
+        $result = $instance->getElasticSearchClient()->search($params);
+        return static::hydrateElasticsearchResult($result, $params, $perPage, $cursor ?? null, $cursorName, $cursorOrders ?? null);
     }
 
     /**
@@ -252,7 +270,7 @@ trait ElasticquentTrait
 
         $result = $instance->getElasticSearchClient()->search($params);
 
-        return static::hydrateElasticsearchResult($result);
+        return static::hydrateElasticsearchResult($result, $params);
     }
 
     /**
@@ -264,17 +282,50 @@ trait ElasticquentTrait
      *
      * @return ElasticquentResultCollection
      */
-    public static function search($term = '')
+    public static function search($term = '', string $paginationType = 'base')
     {
         $instance = new static;
 
-        $params = $instance->getBasicEsParams();
+        $params = $instance->getBasicEsParams(true, null, null, true);
+        $params['body']['sort'] = $instance->getDefaultSort();
+
+        $perPage = $params['size'];
+
+        if($paginationType === 'cursor'){
+            list($cursor, $cursorOrders) = self::paginateUsingCursor($params, $cursorName);
+        }
 
         $params['body']['query']['match']['_all'] = $term;
 
         $result = $instance->getElasticSearchClient()->search($params);
 
-        return static::hydrateElasticsearchResult($result);
+        return static::hydrateElasticsearchResult($result, $params, $perPage, $cursor ?? null);
+    }
+
+    protected static function paginateUsingCursor(&$params, $cursorName = 'cursor'){
+
+
+        if(!Arr::has($params,'body.sort')){
+            throw new Exception('If use cursort pagination you must add sort direction');
+        }
+
+        $cursor = is_string(request()->get($cursorName))
+            ? ElasticquentCursor::fromEncoded(request()->get($cursorName))
+            : ElasticquentCursorPaginator::resolveCurrentCursor($cursorName, null);
+
+
+        $orders = static::ensureOrderForCursorPagination(Arr::get($params,'body.sort'), ! is_null($cursor) && $cursor->pointsToPreviousItems());
+
+        if(!is_null($cursor)){
+            $params['body']['search_after'] = array_values($cursor->getParameters());
+        }
+
+        $params['body']['sort'] = $orders->toArray();
+
+        $params['size'] += 1;
+
+        return [$cursor, $orders];
+
     }
 
     /**
@@ -356,7 +407,7 @@ trait ElasticquentTrait
      *
      * @return array
      */
-    public function getBasicEsParams($getIdIfPossible = true, $limit = null, $offset = null)
+    public function getBasicEsParams($getIdIfPossible = true, $limit = null, $offset = null, $allowDefLimit = false)
     {
         $params = array(
             'index' => $this->getIndexName(),
@@ -368,6 +419,8 @@ trait ElasticquentTrait
 
         if (is_numeric($limit)) {
             $params['size'] = $limit;
+        }else if($allowDefLimit){
+            $params['size'] = $this->getPerPage();
         }
 
         if (is_numeric($offset)) {
@@ -513,6 +566,7 @@ trait ElasticquentTrait
         return $client->indices()->delete($index);
     }
 
+
     /**
      * Index exist
      *
@@ -547,6 +601,24 @@ trait ElasticquentTrait
         return $instance->getElasticSearchClient()->indices()->existsType($params);
     }
 
+    public static function putSettings(){
+
+        $instance = new static;
+
+        $client = $instance->getElasticSearchClient();
+
+        $index = array(
+            'index' => $instance->getIndexName(),
+        );
+
+        $settings = $instance->getIndexSettings();
+        if (!is_null($settings)) {
+            $index['body']['settings'] = $settings;
+        }
+
+        $client->indices()->putSettings($index);
+    }
+
     /**
      * New From Hit Builder
      *
@@ -559,13 +631,19 @@ trait ElasticquentTrait
     public function newFromHitBuilder($hit = array())
     {
         $key_name = $this->getKeyName();
-        
+
+
         $attributes = $hit['_source'];
 
         if (isset($hit['_id'])) {
             $attributes[$key_name] = is_int($hit['_id']) ? intval($hit['_id']) : $hit['_id'];
         }
-        
+
+        if (isset($hit['sort'])) {
+            $attributes['sort_data'] = $hit['sort'];
+        }
+
+
         // Add fields to attributes
         if (isset($hit['fields'])) {
             foreach ($hit['fields'] as $key => $value) {
@@ -595,30 +673,26 @@ trait ElasticquentTrait
      * Create a elacticquent result collection of models from plain elasticsearch result.
      *
      * @param  array  $result
+     * @param  array  $params
+     * @param  null|array  $perPage
+     * @param  null|\Elasticquent\ElasticquentCursor  $cursor
+     * @param  null|string  $cursorName
+     * @param  null|\Illuminate\Support\Collection  $cursorOrder
+     *
      * @return \Elasticquent\ElasticquentResultCollection
      */
-    public static function hydrateElasticsearchResult(array $result)
+    public static function hydrateElasticsearchResult(array $result, array $params, ?int $perPage = null, ?ElasticquentCursor $cursor = null, string $cursorName = 'cursor', ?Collection $cursorOrder = null)
     {
         $items = $result['hits']['hits'];
-        return static::hydrateElasticquentResult($items, $meta = $result);
-    }
 
-    /**
-     * Create a elacticquent result collection of models from plain arrays.
-     *
-     * @param  array  $items
-     * @param  array  $meta
-     * @return \Elasticquent\ElasticquentResultCollection
-     */
-    public static function hydrateElasticquentResult(array $items, $meta = null)
-    {
         $instance = new static;
 
         $items = array_map(function ($item) use ($instance) {
             return $instance->newFromHitBuilder($item);
         }, $items);
 
-        return $instance->newElasticquentResultCollection($items, $meta);
+        return $instance->newElasticquentResultCollection($items, $meta = $result, $params, $perPage, $cursor, $cursorName, $cursorOrder);
+
     }
 
     /**
@@ -658,7 +732,7 @@ trait ElasticquentTrait
         $items = array_map(function ($item) use ($instance, $parentRelation) {
             // Convert all null relations into empty arrays
             $item = $item ?: [];
-            
+
             return static::newFromBuilderRecursive($instance, $item, $parentRelation);
         }, $items);
 
@@ -723,11 +797,15 @@ trait ElasticquentTrait
      *
      * @param  array  $models
      * @param  array  $meta
+     * @param  null|array  $perPage
+     * @param  null|\Elasticquent\ElasticquentCursor  $cursor
+     * @param  null|string  $cursorName
+     * @param  null|\Illuminate\Support\Collection  $cursorOrder
      * @return \Elasticquent\ElasticquentResultCollection
      */
-    public function newElasticquentResultCollection(array $models = [], $meta = null)
+    public function newElasticquentResultCollection(array $models = [], ?array $meta = null, ?array $params = [], ?int $perPage = null, ?ElasticquentCursor $cursor = null, string $cursorName = 'cursor', Collection $cursorOrder)
     {
-        return new ElasticquentResultCollection($models, $meta);
+        return new ElasticquentResultCollection($models, $meta, $params, $perPage, $cursor, $cursorName, $cursorOrder);
     }
 
     /**
@@ -776,5 +854,41 @@ trait ElasticquentTrait
         }
 
         return false;
+    }
+
+
+    /**
+     * Ensure the proper order by required for cursor pagination.
+     *
+     * @param  bool  $shouldReverse
+     * @return \Illuminate\Support\Collection
+     */
+    protected static function ensureOrderForCursorPagination($sort, $shouldReverse = false)
+    {
+        $orders = collect($sort);
+
+        if ($shouldReverse) {
+            $orders = $orders->map(function ($order) {
+                $order['order'] = $order['order'] === 'asc' ? 'desc' : 'asc';
+                return $order;
+            });
+        }
+        return $orders;
+    }
+
+    /**
+     * @return string
+     */
+    public function getItemSortKey(): string
+    {
+        return $this->itemSortKey;
+    }
+
+    /**
+     * @return array
+     */
+    public function getDefaultSort(): array
+    {
+        return $this->defaultSort;
     }
 }
