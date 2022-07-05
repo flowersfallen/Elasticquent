@@ -279,10 +279,12 @@ trait ElasticquentTrait
      * Simple search using a match _all query
      *
      * @param string $term
+     * @param string $paginationType
+     * @param string $cursorName
      *
      * @return ElasticquentResultCollection
      */
-    public static function search($term = '', string $paginationType = 'base')
+    public static function search($term = '', string $paginationType = 'base' , $cursorName = 'cursor')
     {
         $instance = new static;
 
@@ -803,7 +805,7 @@ trait ElasticquentTrait
      * @param  null|\Illuminate\Support\Collection  $cursorOrder
      * @return \Elasticquent\ElasticquentResultCollection
      */
-    public function newElasticquentResultCollection(array $models = [], ?array $meta = null, ?array $params = [], ?int $perPage = null, ?ElasticquentCursor $cursor = null, string $cursorName = 'cursor', Collection $cursorOrder)
+    public function newElasticquentResultCollection(array $models = [], ?array $meta = null, ?array $params = [], ?int $perPage = null, ?ElasticquentCursor $cursor = null, string $cursorName = 'cursor', ?Collection $cursorOrder = null)
     {
         return new ElasticquentResultCollection($models, $meta, $params, $perPage, $cursor, $cursorName, $cursorOrder);
     }
