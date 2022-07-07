@@ -156,18 +156,7 @@ trait ElasticquentTrait
         return $this->documentVersion;
     }
 
-    /**
-     * Get Index Document Data
-     *
-     * Get the data that Elasticsearch will
-     * index for this particular document.
-     *
-     * @return array
-     */
-    public function getIndexDocumentData()
-    {
-        return $this->toArray();
-    }
+
 
     /**
      * Index Documents
@@ -587,21 +576,7 @@ trait ElasticquentTrait
         return $client->indices()->exists($index);
     }
 
-    /**
-     * Type Exists.
-     *
-     * Does this type exist?
-     *
-     * @return bool
-     */
-    public static function typeExists()
-    {
-        $instance = new static;
 
-        $params = $instance->getBasicEsParams();
-
-        return $instance->getElasticSearchClient()->indices()->existsType($params);
-    }
 
     public static function putSettings(){
 
@@ -893,4 +868,11 @@ trait ElasticquentTrait
     {
         return $this->defaultSort;
     }
+
+    public function getIndexName()
+    {
+        return $this->indexName;
+    }
+
+
 }

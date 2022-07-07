@@ -139,12 +139,4 @@ interface ElasticquentInterface
      */
     public static function getMapping();
 
-    /**
-     * Type Exists
-     *
-     * Does this type exist?
-     *
-     * @return bool
-     */
-    public static function typeExists();
 }
