@@ -620,6 +620,10 @@ trait ElasticquentTrait
             $attributes['sort_data'] = $hit['sort'];
         }
 
+        if(isset($hit['inner_hits'])){
+            $attributes['inner_hits'] = $hit['inner_hits'];
+        }
+
 
         // Add fields to attributes
         if (isset($hit['fields'])) {

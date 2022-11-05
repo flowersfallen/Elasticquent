@@ -37,7 +37,7 @@ class ElasticquentResultCollection extends \Illuminate\Database\Eloquent\Collect
      * @param  array  $meta
      * @return void
      */
-    public function __construct($items, ?array $meta = null, ?array $params = [], ?int $perPage = null, ?ElasticquentCursor $cursor = null, ?string $cursorName = 'cursor', ?Collection $cursorOrders)
+    public function __construct($items, ?array $meta = null, ?array $params = [], ?int $perPage = null, ?ElasticquentCursor $cursor = null, ?string $cursorName = 'cursor', ?Collection $cursorOrders = null)
     {
         // Detect if arguments are old deprecated version ($results, $instance)
         if (isset($items['hits']) and $meta instanceof \Illuminate\Database\Eloquent\Model) {
@@ -129,7 +129,7 @@ class ElasticquentResultCollection extends \Illuminate\Database\Eloquent\Collect
      */
     public function totalHits()
     {
-        return $this->hits['total'];
+        return $this->hits['total']['value'];
     }
 
     /**
@@ -219,7 +219,7 @@ class ElasticquentResultCollection extends \Illuminate\Database\Eloquent\Collect
 
     public function paginateCursor($itemSortKey = 'sort_data'){
 
-     
+
         return new ElasticquentCursorPaginator($this->items, $this->perPage, $this->cursor, [
             'path' => Paginator::resolveCurrentPath(),
             'cursorName' => $this->cursorName,
