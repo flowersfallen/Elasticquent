@@ -229,6 +229,33 @@ class ElasticquentResultCollection extends \Illuminate\Database\Eloquent\Collect
 
     }
 
+    public  function paginateCollection($perPage, $except = [], $loadRelationAfterSlice = [],  $costomCount = false, $pageName = 'page', $fragment = null)
+    {
+
+        $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage($pageName);
+        $currentPageItems = $this->slice(($currentPage - 1) * $perPage, $perPage);
+        $currentPageItems->load($loadRelationAfterSlice);
+        parse_str(request()->getQueryString(), $query);
+        unset($query[$pageName]);
+        foreach($except as $exceptItem){
+            unset($query[$exceptItem]);
+        }
+        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+            $currentPageItems,
+            $costomCount ? $costomCount : $this->count(),
+            $perPage,
+            $currentPage,
+            [
+                'pageName' => $pageName,
+                'path' => \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPath(),
+                'query' => $query,
+                'fragment' => $fragment
+            ]
+        );
+
+        return $paginator;
+    }
+
 
 
 

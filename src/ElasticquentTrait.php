@@ -242,6 +242,8 @@ trait ElasticquentTrait
 
 
         $result = $instance->getElasticSearchClient()->search($params);
+
+
         return static::hydrateElasticsearchResult($result, $params, $perPage, $cursor ?? null, $cursorName, $cursorOrders ?? null);
     }
 
@@ -607,6 +609,7 @@ trait ElasticquentTrait
      */
     public function newFromHitBuilder($hit = array())
     {
+
         $key_name = $this->getKeyName();
 
 

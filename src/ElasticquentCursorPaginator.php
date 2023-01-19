@@ -56,11 +56,12 @@ class ElasticquentCursorPaginator extends CursorPaginator
         $this->perPage = $perPage;
         $this->cursor = $cursor;
         $this->path = $this->path !== '/' ? rtrim($this->path, '/') : $this->path;
+        
 
         $this->setItems($items);
     }
 
-   
+
     /**
      * Get the cursor parameters for a given object.
      *
