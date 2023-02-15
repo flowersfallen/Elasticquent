@@ -330,20 +330,7 @@ trait ElasticquentTrait
         return $this->getElasticSearchClient()->delete($this->getBasicEsParams());
     }
 
-    /**
-     * Partial Update to Indexed Document
-     *
-     * @return array
-     */
-    public function updateIndex()
-    {
-        $params = $this->getBasicEsParams();
-
-        // Get our document body data.
-        $params['body']['doc'] = $this->getIndexDocumentData();
-
-        return $this->getElasticSearchClient()->update($params);
-    }
+   
 
     /**
      * Get Search Document
@@ -358,42 +345,7 @@ trait ElasticquentTrait
         return $this->getElasticSearchClient()->get($this->getBasicEsParams());
     }
 
-    /**
-     * Get Basic Elasticsearch Params
-     *
-     * Most Elasticsearch API calls need the index and
-     * type passed in a parameter array.
-     *
-     * @param bool $getIdIfPossible
-     * @param bool $getSourceIfPossible
-     * @param bool $getTimestampIfPossible
-     * @param int  $limit
-     * @param int  $offset
-     *
-     * @return array
-     */
-    public function getBasicEsParams($getIdIfPossible = true, $limit = null, $offset = null, $allowDefLimit = false)
-    {
-        $params = array(
-            'index' => $this->getIndexName(),
-        );
 
-        if ($getIdIfPossible && $this->getKey()) {
-            $params['id'] = $this->getKey();
-        }
-
-        if (is_numeric($limit)) {
-            $params['size'] = $limit;
-        }else if($allowDefLimit){
-            $params['size'] = $this->getPerPage();
-        }
-
-        if (is_numeric($offset)) {
-            $params['from'] = $offset;
-        }
-
-        return $params;
-    }
 
     /**
      * Build the 'fields' parameter depending on given options.
@@ -703,7 +655,7 @@ trait ElasticquentTrait
         return $this->defaultSort;
     }
 
- 
+
 
 
 }

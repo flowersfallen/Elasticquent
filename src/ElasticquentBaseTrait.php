@@ -191,6 +191,59 @@ trait ElasticquentBaseTrait
         $client->indices()->putSettings($index);
     }
 
+    /**
+     * Partial Update to Indexed Document
+     *
+     * @return array
+     */
+    public function updateIndex()
+    {
+        $params = $this->getBasicEsParams();
+
+        // Get our document body data.
+        $params['body']['doc'] = $this->getIndexDocumentData();
+
+        return $this->getElasticSearchClient()->update($params);
+    }
+
+    /**
+     * Get Basic Elasticsearch Params
+     *
+     * Most Elasticsearch API calls need the index and
+     * type passed in a parameter array.
+     *
+     * @param bool $getIdIfPossible
+     * @param bool $getSourceIfPossible
+     * @param bool $getTimestampIfPossible
+     * @param int  $limit
+     * @param int  $offset
+     *
+     * @return array
+     */
+    public function getBasicEsParams($getIdIfPossible = true, $limit = null, $offset = null, $allowDefLimit = false)
+    {
+        $params = array(
+            'index' => $this->getIndexName(),
+        );
+
+        if ($getIdIfPossible && $this->getKey()) {
+            $params['id'] = $this->getKey();
+        }
+
+        if (is_numeric($limit)) {
+            $params['size'] = $limit;
+        }else if($allowDefLimit){
+            $params['size'] = $this->getPerPage();
+        }
+
+        if (is_numeric($offset)) {
+            $params['from'] = $offset;
+        }
+
+        return $params;
+    }
+
+
     public function getIndexName()
     {
         return $this->indexName;
