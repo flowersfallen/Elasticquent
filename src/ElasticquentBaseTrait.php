@@ -244,10 +244,7 @@ trait ElasticquentBaseTrait
     }
 
 
-    public function getIndexName()
-    {
-        return $this->indexName;
-    }
+  
 
 
 }
