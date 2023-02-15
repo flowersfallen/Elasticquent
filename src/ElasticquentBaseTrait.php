@@ -189,4 +189,9 @@ trait ElasticquentBaseTrait
 
         $client->indices()->putSettings($index);
     }
+
+    public function getIndexName()
+    {
+        return $this->indexName;
+    }
 }

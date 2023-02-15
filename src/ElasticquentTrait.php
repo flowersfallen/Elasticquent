@@ -93,7 +93,7 @@ trait ElasticquentTrait
         $this->useTimestampsInIndex(false);
     }
 
-   
+
 
     /**
      * Is Elasticsearch Document
@@ -703,10 +703,7 @@ trait ElasticquentTrait
         return $this->defaultSort;
     }
 
-    public function getIndexName()
-    {
-        return $this->indexName;
-    }
+   
 
 
 }
