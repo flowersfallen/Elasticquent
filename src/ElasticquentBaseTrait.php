@@ -6,6 +6,7 @@ namespace Elasticquent;
 
 trait ElasticquentBaseTrait
 {
+    use ElasticquentClientTrait;
     /**
      * Get Mapping Properties
      *
@@ -194,4 +195,6 @@ trait ElasticquentBaseTrait
     {
         return $this->indexName;
     }
+
+
 }

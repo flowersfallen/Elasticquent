@@ -703,7 +703,7 @@ trait ElasticquentTrait
         return $this->defaultSort;
     }
 
-   
+ 
 
 
 }
