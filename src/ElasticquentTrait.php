@@ -330,7 +330,7 @@ trait ElasticquentTrait
         return $this->getElasticSearchClient()->delete($this->getBasicEsParams());
     }
 
-   
+
 
     /**
      * Get Search Document
@@ -652,7 +652,8 @@ trait ElasticquentTrait
      */
     public function getDefaultSort(): array
     {
-        return $this->defaultSort;
+        //return $this->defaultSort;
+        return self::$defaultSort;
     }
 
 
