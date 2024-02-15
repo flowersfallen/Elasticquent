@@ -256,6 +256,11 @@ class ElasticquentResultCollection extends \Illuminate\Database\Eloquent\Collect
         return $paginator;
     }
 
+    public function paginateSeo($pageLimit = 25)
+    {
+
+    }
+
 
 
 
