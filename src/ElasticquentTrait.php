@@ -17,7 +17,7 @@ use Illuminate\Support\Collection;
  */
 trait ElasticquentTrait
 {
-    use ElasticquentClientTrait;
+    // use ElasticquentClientTrait;
     use ElasticquentBaseTrait;
 
     /**
@@ -55,6 +55,8 @@ trait ElasticquentTrait
      * @var null|int
      */
     protected $documentVersion = null;
+
+    static public $defaultSort = ['id' => ['order' => 'desc']];
 
     /**
      * New Collection
@@ -175,7 +177,7 @@ trait ElasticquentTrait
      *
      * @return ElasticquentResultCollection
      */
-    public static function searchByQuery($query = null, $aggregations = null, $sourceFields = null, $limit = null, $offset = null, $searchAfter = null, $sort = null, $paginationType = 'base', $cursorName = 'cursor' )
+    public static function searchByQuery($query = null, $aggregations = null, $sourceFields = null, $limit = null, $offset = null, $sort = null, $searchAfter = null, $paginationType = 'base', $cursorName = 'cursor' )
     {
         $instance = new static;
 
@@ -656,7 +658,10 @@ trait ElasticquentTrait
         return self::$defaultSort;
     }
 
-
+    public function getIndexDocumentData()
+    {
+        return $this->toArray();
+    }
 
 
 }
